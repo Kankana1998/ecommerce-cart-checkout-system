@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ecommerce Cart + Checkout",
+  title: "Ecommerce Cart Checkout",
   description: "Cart/checkout APIs with nth-order discount codes",
 };
 
