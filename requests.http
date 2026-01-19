@@ -1,0 +1,244 @@
+# REST Client for Testing Ecommerce APIs
+# Install VS Code Extension: "REST Client" by Huachao Guo
+
+### Variables
+@baseUrl = http://localhost:3000
+@userId = demo-user
+@userId2 = test-user-2
+@userId3 = test-user-3
+
+### ============================================================
+### 1. CART MANAGEMENT - Add items to cart
+### ============================================================
+
+### Get initial cart
+GET {{baseUrl}}/api/cart
+x-user-id: {{userId}}
+
+### Add first item to cart
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "productId": "prod_laptop",
+  "name": "MacBook Pro 16\"",
+  "price": 2499.99,
+  "quantity": 1
+}
+
+### Add another item to cart
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "productId": "prod_mouse",
+  "name": "Magic Mouse 2",
+  "price": 79.99,
+  "quantity": 2
+}
+
+### View cart after adding items
+GET {{baseUrl}}/api/cart
+x-user-id: {{userId}}
+
+### ============================================================
+### 2. DISCOUNT CODE MANAGEMENT
+### ============================================================
+
+### Add items for other users to trigger discount generation
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: {{userId2}}
+
+{
+  "productId": "prod_keyboard",
+  "name": "Magic Keyboard",
+  "price": 99.99,
+  "quantity": 1
+}
+
+### Checkout user 2 (order 1)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: {{userId2}}
+
+{}
+
+### Add items for user 3
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: {{userId3}}
+
+{
+  "productId": "prod_monitor",
+  "name": "LG Ultra Wide Monitor",
+  "price": 599.99,
+  "quantity": 1
+}
+
+### Checkout user 3 (order 2)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: {{userId3}}
+
+{}
+
+### Add items for another user to complete order 3
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: user4
+
+{
+  "productId": "prod_adapter",
+  "name": "USB-C Adapter",
+  "price": 29.99,
+  "quantity": 1
+}
+
+### Checkout user 4 (order 3 - should generate discount code!)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: user4
+
+{}
+
+### Generate discount code (after 3rd order)
+POST {{baseUrl}}/api/admin/discount/generate
+
+### ============================================================
+### 3. DISCOUNT APPLICATION - Apply discount to cart
+### ============================================================
+
+### Apply discount code to original user's cart
+POST {{baseUrl}}/api/cart/apply-discount
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "code": "DISC10_3"
+}
+
+### View cart with discount applied
+GET {{baseUrl}}/api/cart
+x-user-id: {{userId}}
+
+### ============================================================
+### 4. CHECKOUT WITH DISCOUNT
+### ============================================================
+
+### Checkout with discount (10% off)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "code": "DISC10_3"
+}
+
+### ============================================================
+### 5. ADMIN ENDPOINTS
+### ============================================================
+
+### Get store statistics
+GET {{baseUrl}}/api/admin/stats
+
+### Try to generate another code (should fail - not at boundary yet)
+POST {{baseUrl}}/api/admin/discount/generate
+
+### ============================================================
+### 6. ERROR SCENARIOS
+### ============================================================
+
+### Try to use already-used discount code
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: user5
+
+{
+  "code": "DISC10_3"
+}
+
+### Try to apply invalid code
+POST {{baseUrl}}/api/cart/apply-discount
+Content-Type: application/json
+x-user-id: user6
+
+{
+  "code": "INVALID_CODE_12345"
+}
+
+### Try to checkout empty cart
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: user_empty
+
+{}
+
+### ============================================================
+### 7. WORKFLOW: Simulate multiple users completing orders
+### ============================================================
+
+### User A adds item
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: userA
+
+{
+  "productId": "prod_item1",
+  "name": "Item A",
+  "price": 100,
+  "quantity": 1
+}
+
+### User A checks out (order 4)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: userA
+
+{}
+
+### User B adds item
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: userB
+
+{
+  "productId": "prod_item2",
+  "name": "Item B",
+  "price": 150,
+  "quantity": 1
+}
+
+### User B checks out (order 5)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: userB
+
+{}
+
+### User C adds item
+POST {{baseUrl}}/api/cart/add
+Content-Type: application/json
+x-user-id: userC
+
+{
+  "productId": "prod_item3",
+  "name": "Item C",
+  "price": 200,
+  "quantity": 1
+}
+
+### User C checks out (order 6 - should generate DISC10_6!)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+x-user-id: userC
+
+{}
+
+### Generate new discount code (order 6 boundary)
+POST {{baseUrl}}/api/admin/discount/generate
+
+### Final stats
+GET {{baseUrl}}/api/admin/stats
